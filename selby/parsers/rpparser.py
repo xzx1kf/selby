@@ -86,7 +86,7 @@ class RacingPostParser(object):
                     print str(i+1) + ' ' + str(time) + ' ' + title + ' : ' + str(runners)
 
                     for details in qualifying_horses:
-                        print '\t\t' + details[0] + ' - ' + details[1]
+                        print '\t\t' + details[0] + ' - ' + details[1] + ' - ' + details[2]
 
                     count += 1
 
@@ -130,7 +130,6 @@ class RacingPostParser(object):
     def check_number_of_runners(self, soup):
         """Retrieve the number of runners from a race card."""
         url = soup('a')[0]['href']
-
         html = self.read_url(url)
         #html = self.read_file('../static/race_card.html')
 
@@ -154,27 +153,56 @@ class RacingPostParser(object):
         #html = self.read_file('../static/race_card.html')
 
         card_soup = BeautifulSoup(html)
+
+        # Check that its not in the top 5 weights
+        horses = self.check_weight(card_soup)
+
         card_soup = card_soup.find('div', {'class' : 'info'})
+
+        print card_soup.contents
+        exit(0)
         
         qualifying_horses = []
         
         # Check the first
         odds = (card_soup.contents[2].contents[0]).strip(', ')
         horse = card_soup.contents[2].contents[1].contents[0]
+        horse = horse.lstrip().rstrip().upper()
+        horse = horse.replace('&ACUTE;', '')
+        print horse + ' - check'
 
-        if self.check_odds(odds):
-            details = odds, horse
-            qualifying_horses.append(details)
-
-        # Check the rest
-        for x in range(3, len(card_soup.contents)-1, 2):
-            odds = (card_soup.contents[x]).strip(', ')
-            horse = card_soup.contents[x+1].contents[0]
-
-            # Check the odds are in range. 
+        if horse in horses.keys():
             if self.check_odds(odds):
-                details = odds, horse
+                details = odds, horse, horses[horse][1]
                 qualifying_horses.append(details)
+
+        try:
+            # Check the rest
+            for x in range(3, len(card_soup.contents)-1, 2):
+                odds = (card_soup.contents[x]).strip(', ')
+                horse = card_soup.contents[x+1].contents[0]
+                horse = horse.lstrip().rstrip().upper()
+                horse = horse.replace('&ACUTE;', '')
+                print horse + ' - check'
+
+                if horse in horses.keys():
+                    # Check the odds are in range. 
+                    if self.check_odds(odds):
+                        details = odds, horse, horses[horse][1]
+                        qualifying_horses.append(details)
+        except:
+            # Check the first
+            print '########## EXCEPTION ###########'
+            odds = (card_soup.contents[4].contents[0]).strip(', ')
+            horse = card_soup.contents[4].contents[1].contents[0]
+            horse = horse.lstrip().rstrip().upper()
+            horse = horse.replace('&ACUTE;', '')
+            print horse + ' - check'
+
+            if horse in horses.keys():
+                if self.check_odds(odds):
+                    details = odds, horse, horses[horse][1]
+                    qualifying_horses.append(details)
 
         return qualifying_horses
 
@@ -189,7 +217,33 @@ class RacingPostParser(object):
             return True
 
         return False
-        
+
+    def check_weight(self, soup):
+        """docstring for check_weight"""
+
+        card_item = soup('div', {'class' : 'cardItem'})
+
+        horses = {}
+
+        for i in range(len(card_item)):
+            card_soup = card_item[i]
+
+            weight_position = card_soup.find('td', {'class' : 't'})
+            horse = card_soup.find('td', {'class' : 'h'})
+            days = card_soup.find('div', {'class' : 'horseShortInfo'})
+
+            weight_position = weight_position.contents[1].contents[0]
+            horse = horse.contents[1].contents[1].contents[0].contents[0]
+            horse = horse.replace('&acute;', '')
+            days = (days.contents[len(days.contents)-1]).strip()
+
+            if int(weight_position) > 5:
+                horses[horse] = weight_position, days
+
+            print weight_position + ' ' + horse + ' : ' + days
+
+        return horses
+
 
 if __name__ == '__main__':
     rpp = RacingPostParser()
