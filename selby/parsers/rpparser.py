@@ -158,9 +158,6 @@ class RacingPostParser(object):
         horses = self.check_weight(card_soup)
 
         card_soup = card_soup.find('div', {'class' : 'info'})
-
-        print card_soup.contents
-        exit(0)
         
         qualifying_horses = []
         
@@ -169,7 +166,7 @@ class RacingPostParser(object):
         horse = card_soup.contents[2].contents[1].contents[0]
         horse = horse.lstrip().rstrip().upper()
         horse = horse.replace('&ACUTE;', '')
-        print horse + ' - check'
+        #print horse + ' - check'
 
         if horse in horses.keys():
             if self.check_odds(odds):
@@ -183,7 +180,7 @@ class RacingPostParser(object):
                 horse = card_soup.contents[x+1].contents[0]
                 horse = horse.lstrip().rstrip().upper()
                 horse = horse.replace('&ACUTE;', '')
-                print horse + ' - check'
+                #print horse + ' - check'
 
                 if horse in horses.keys():
                     # Check the odds are in range. 
@@ -197,7 +194,7 @@ class RacingPostParser(object):
             horse = card_soup.contents[4].contents[1].contents[0]
             horse = horse.lstrip().rstrip().upper()
             horse = horse.replace('&ACUTE;', '')
-            print horse + ' - check'
+            #print horse + ' - check'
 
             if horse in horses.keys():
                 if self.check_odds(odds):
@@ -236,11 +233,14 @@ class RacingPostParser(object):
             horse = horse.contents[1].contents[1].contents[0].contents[0]
             horse = horse.replace('&acute;', '')
             days = (days.contents[len(days.contents)-1]).strip()
+            days = days.split(' ')
+            days = days[0]
 
             if int(weight_position) > 5:
-                horses[horse] = weight_position, days
+                if int(days) > 7:
+                    horses[horse] = weight_position, days
 
-            print weight_position + ' ' + horse + ' : ' + days
+            #print weight_position + ' ' + horse + ' : ' + days
 
         return horses
 
