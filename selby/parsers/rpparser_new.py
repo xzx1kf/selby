@@ -1,8 +1,10 @@
 from BeautifulSoup import BeautifulSoup
 from selby.horse import Horse
 from selby.race import Race
+from selby.course import Course
 import htmllib
 import urllib2
+import pickle
 
 
 class RacingPostParser(object):
@@ -15,10 +17,21 @@ class RacingPostParser(object):
 
         return data
 
+    def read_url(self, url):
+        response = urllib2.urlopen(url)
+        html = response.read()
+        response.close()
+
+        return html
+
     def parse_todays_races(self, html):
         """Parse todays races."""
         soup = self.strip_races_from(html)
-        soup = self.strip_course_from(soup)
+
+        rpcp = RacingPostCourseParser()
+        courses = rpcp.parse_courses(soup)
+
+        return courses
     
     def strip_races_from(self, html):
         """Strips the race information from todays card."""
@@ -26,75 +39,39 @@ class RacingPostParser(object):
         html = soup.find('div', {'id' : 'races_result'})
         return html
 
-    def strip_course_from(self, soup):
-
-        for i in range(len(soup('div', {'class' : 'crBlock'}))):
-            html = soup('div', {'class' : 'crBlock'})[i]
-        
-            # Get race name.
-            title = html('td', {'class' : 'meeting'})
-            self.strip_course_name_from(title)
-
-            # Get the going information.
-            self.strip_going_from(html.contents[5])
-
-            # Get the race information at this course.
-            self.strip_races_from_course(html)
-
-            print "\n\r==================================================\n\r"
-
-    def strip_course_name_from(self, soup):
-        soup = BeautifulSoup(str(soup))
-        print 'Course:\t' + str(soup.find('a').contents[0])
-        
-    def strip_going_from(self, soup):
-        going = str(soup.contents[2])
-        x = going.find('(')
-        going = going[2:x-1]
-        print 'Going:\t' + going + '\n\r'
-
     def strip_races_from_course(self, course_soup):
         soup = course_soup.find('table', {'class' : 'cardsGrid'})
 
-        count = 0
-        
+        rprp = RacingPostRaceParser()
+        races = []
+
         for i in range(len(soup('tr'))):
             race_soup = soup('tr')[i]
 
-            # Time
-            time = race_soup.contents[1].contents[1].contents[0]
+            race = rprp.parse_race(race_soup)
+            races.append(race)
 
-            # Title
-            title = self.unescape(str(race_soup
-                                        .contents[3]
-                                        .contents[1]
-                                        .contents[0]))
+            #print race.title
 
-            # Check that the distance is less than 1m2f
-            distance = self.check_distance(title)
+            # CHECK THAT THE DISTANCE IS OK 
+            distance_is_within_limits = self.is_distance_within_limits(race.distance)
+            #print "Distance within limits? " + str(distance_is_within_limits)
 
+            # CHECK THAT THE RACE IS A HANDICAP AND A FLAT RACE
+            is_a_flat_race = self.is_a_flat_race(race.title)
+            #print "Is a flat race? " + str(is_a_flat_race)
 
-            # Filter out races that have "hurdle" or "chase" or
-            # aren't a handicap.
-            if "Hurdle" in title or "Chase" in title or "Handicap" not in title:
-                pass
-            elif distance:
-                # Check the number of runners is 11-16 inclusive.
-                runners = self.check_number_of_runners(race_soup)
+            # CHECK THAT THE NUMBER OF RUNNERS IS BETWEEN 11 AND 16
+            is_number_of_runners_within_limits = self.is_number_of_runners_within_limits(race.runners)
+            #print "Is the number of runners between 11 and 16? " + str(is_number_of_runners_within_limits)
 
-                qualifying_horses = self.check_betting_forecast(race_soup)
+            if distance_is_within_limits and is_a_flat_race and is_number_of_runners_within_limits:
+                # CHECK THAT THE BETTING FORECAST FOR EACH OF THE HORSES IN THE RACE
+                for horse in race.horses:
+                    pass
+                    #print "[" + horse.weight + "] " + horse.name + " {" + str(horse.last_ran) + "} BF: " + horse.forecast_odds
 
-                if runners >= 11 and runners <= 16:
-                    print str(i+1) + ' ' + str(time) + ' ' + title + ' : ' + str(runners)
-
-                    for details in qualifying_horses:
-                        print '\t\t' + details[0] + ' - ' + details[1] + ' - ' + details[2]
-
-                    count += 1
-
-        if count == 0:
-            print "No races qualify at this course today."
-
+        return races
 
     def unescape(self, string):
         """Remove the special character from html."""
@@ -103,51 +80,31 @@ class RacingPostParser(object):
         p.feed(string)
         return str(p.save_end())
 
-    def check_distance(self, string):
+    def is_distance_within_limits(self, distance):
         """Checks that the distance is under 1m2f."""
-        # Strip the distance from the title
-        index = string.rfind(' ')
-        distance = string[index:]
-
-        m = distance.find('m')
-        f = distance.find('f')
-
-        miles = 0
-        furl = 0
-
-        if m is not -1:
-            miles = distance[m-1:m]
-
-        if f is not -1:
-            furl = distance[f-1:f]
-
-        if int(miles) >= 1:
-            if int(furl) >= 2:
-                return False
-            elif int(miles) <= 1:
+        if distance[0] == 0:
+            return True
+        elif distance[0] < 2:
+            if distance[1] < 2:
                 return True
+            else:
+                return False
+        else:
+            return False
+
+    def is_a_flat_race(self, race_title):
+        if "Hurdle" in race_title or "Chase" in race_title or "Handicap" not in race_title:
+            return False
         else:
             return True
+            
+    def is_number_of_runners_within_limits(self, number_of_runners):
+        """The number of runners must be between 11 and 16(inclusive)."""
+        if number_of_runners >= 11 and number_of_runners <= 16:
+            return True
+        else:
+            return False
 
-    def check_number_of_runners(self, soup):
-        """Retrieve the number of runners from a race card."""
-        url = soup('a')[0]['href']
-        html = self.read_url(url)
-        #html = self.read_file('../static/race_card.html')
-
-        card_soup = BeautifulSoup(html)
-        card_soup = card_soup.find('p', {'class' : 'raceInfo'})
-        card_soup = card_soup.find('span', {'class' : 'nowrap'}).contents[0]
-        index = card_soup.rfind(' ')
-        runners = card_soup[index:]
-        return int(runners)
-
-    def read_url(self, url):
-        response = urllib2.urlopen(url)
-        html = response.read()
-        response.close()
-
-        return html
 
     def check_betting_forecast(self, soup):
         url = soup('a')[0]['href']
@@ -246,6 +203,56 @@ class RacingPostParser(object):
 
         return horses
 
+
+class RacingPostCourseParser(object):
+    """Parses the course information."""
+
+    def parse_courses(self, course_soup):
+
+        courses = []
+
+        for i in range(len(course_soup('div', {'class' : 'crBlock'}))):
+            course_item = course_soup('div', {'class' : 'crBlock'})[i]
+
+            course = Course()
+
+            course.name = self.parse_name(course_item)
+            course.going = self.parse_going(course_item)
+            course.races = self.parse_races(course_item)
+
+            if len(course.races) > 0:
+                courses.append(course)
+
+        return courses
+
+    def parse_name(self, course_soup):
+        name = course_soup('td', {'class' : 'meeting'})
+        soup = BeautifulSoup(str(name))
+        return str(soup.find('a').contents[0])
+
+    def parse_going(self, race_soup):
+        going = str(race_soup.contents[5].contents[2])
+        i = going.find('(')
+        return going[2:i-1]
+
+    def parse_races(self, course_soup):
+        soup = course_soup.find('table', {'class' : 'cardsGrid'})
+        
+        rprp = RacingPostRaceParser()
+        races = []
+
+        for i in range(len(soup('tr'))):
+            race_soup = soup('tr')[i]
+
+            try:
+                race = rprp.parse_race(race_soup)
+                races.append(race)
+            except:
+                pass
+        
+        return races 
+
+
 class RacingPostRaceParser(object):
     """Parses the race information."""
 
@@ -256,9 +263,14 @@ class RacingPostRaceParser(object):
         race.time = self.parse_time(race_soup)
         race.distance = self.parse_distance(race.title)
         race.url = self.parse_race_url(race_soup)
-        race.card_soup = RacingPostParser.read_url(race.url)
+        race.card_soup = self.read_url(race.url)
 
-        race.horses = RacingPostHorseParser(race.card_soup)
+        rphp = RacingPostHorseParser()
+        race.horses = rphp.parse_horses(race.card_soup)
+
+        race.runners = int(len(race.horses))
+
+        return race
 
     def parse_title(self, race_soup):
         return str(race_soup.contents[3].contents[1].contents[0])
@@ -288,20 +300,29 @@ class RacingPostRaceParser(object):
             furlongs = distance[fIndex-1:fIndex]
 
         if yIndex is not -1:
-            yards = distance[yIndex-1:yIndex]
+            if fIndex is -1:
+                yards = distance[mIndex+1:yIndex]
+            else:
+                yards = distance[fIndex+1:yIndex]
 
-        return miles, furlongs, yards
+        return int(miles), int(furlongs), int(yards)
+
+    def read_url(self, url):
+        response = urllib2.urlopen(url)
+        html = response.read()
+        response.close()
+        return html
 
 
 class RacingPostHorseParser(object):
     """Parses the horse information given the race card soup."""
 
-    def __init__(self, race_card_soup):
-        self.parse_horses(race_card_soup)
-
     def parse_horses(self, race_card_soup):
         """docstring for parse_horses"""
 
+        horses_list = self.parse_betting_forecast(race_card_soup)
+
+        race_card_soup = BeautifulSoup(race_card_soup)
         card_item = race_card_soup('div', {'class': 'cardItem'})
 
         horses = []
@@ -314,7 +335,15 @@ class RacingPostHorseParser(object):
             horse.name = self.parse_name(card_item_soup)
             horse.last_ran = self.parse_days_since_last_run(card_item_soup)
 
+            try:
+                horse.forecast_odds = horses_list[horse.name]
+            except:
+                horse.forecast_odds = "NONE"
+                pass
+
             horses.append(horse)
+
+        return horses
 
     def parse_name(self, card_item_soup):
         name = card_item_soup.find('td', {'class' : 'h'})
@@ -332,7 +361,33 @@ class RacingPostHorseParser(object):
         days = (days.contents[len(days.contents)-1]).strip()
         days = days.split(' ')
         days = days[0]
-        return int(days)
+        try:
+            return int(days)
+        except: 
+            return 0
+
+    def parse_betting_forecast(self, race_card_soup):
+        race_card_soup = BeautifulSoup(race_card_soup)
+        forecast = race_card_soup.find('div', {'class' : 'info'})
+
+        horses = {}
+
+        odds = (forecast.contents[2].contents[0]).strip(', ')
+        horse = forecast.contents[2].contents[1].contents[0]
+        horse = horse.lstrip().rstrip().upper()
+        horse = horse.replace('&ACUTE;', '')
+
+        horses[str(horse)] = odds
+
+        for x in range(3, len(forecast.contents)-1, 2):
+            odds = (forecast.contents[x]).strip(', ')
+            horse = forecast.contents[x+1].contents[0]
+            horse = horse.lstrip().rstrip().upper()
+            horse = horse.replace('&ACUTE;', '')
+
+            horses[str(horse)] = odds
+
+        return horses
 
         
 
@@ -341,5 +396,30 @@ class RacingPostHorseParser(object):
 if __name__ == '__main__':
     rpp = RacingPostParser()
     #data = rpp.read_file('../static/cards.html')
-    data = rpp.read_url('http://www.racingpost.com/horses2/cards/home.sd')
-    rpp.parse_todays_races(data)
+    #data = rpp.read_url('http://www.racingpost.com/horses2/cards/home.sd')
+    #courses = rpp.parse_todays_races(data)
+
+    #f = open("temp.obj", 'w')
+    #pickle.dump(courses, f)
+    #f.close()
+
+    f = open("temp.obj", 'r')
+    courses = pickle.load(f)
+    f.close()
+
+    for course in courses:
+        if len(course.races) > 0:
+            print course.name + " - Going: " + course.going
+
+        for race in course.races:
+            if rpp.is_distance_within_limits(race.distance):
+                if rpp.is_a_flat_race(race.title):
+                    if rpp.is_number_of_runners_within_limits(race.runners):
+                        print "\t" + race.time + " : " + race.title
+                        for horse in race.horses:
+                            print "\t\t" + horse.weight + " : " + horse.name
+                        print "\n"
+
+        print "\n\r"
+
+
