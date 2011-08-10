@@ -3,9 +3,6 @@ from selby.entities.horse import Horse
 from selby.entities.race import Race
 from selby.entities.course import Course
 import urllib2
-import pickle
-import sys
-
 
 class RacingPostParser(object):
 
@@ -224,35 +221,3 @@ class RacingPostHorseParser(object):
 			horses[str(horse)] = odds
 
 		return horses
-
-
-if __name__ == '__main__':
-    rpp = RacingPostParser()
-    #data = rpp.read_file('../static/cards.html')
-    
-    """
-    data = rpp.read_url('http://www.racingpost.com/horses2/cards/home.sd')
-    courses = rpp.parse_todays_races(data)
-
-    f = open("temp.obj", 'w')
-    pickle.dump(courses, f)
-    f.close()
-
-    """
-    f = open("temp.obj", 'r')
-    courses = pickle.load(f)
-    f.close()
-
-    print "Number of courses today ---> " + str(len(courses))
-    print "\n"
-
-    for course in courses:
-        if len(course.races) > 0:
-            print course.name + " - Going: " + course.going
-
-        for race in course.races:
-	    print "\t" + race.title
-	    for horse in race.horses:
-                print "\t" + horse.weight + "\t: " + horse.name + " ["+ str(horse.last_ran) + "]"
-	    print "\n"
-        print "\n"
