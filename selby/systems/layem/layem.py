@@ -31,7 +31,8 @@ def read():
 				print "\t" + race.time + " " + race.title + " : [" + str(race.runners) + "]"
 				for horse in race.horses:
 					if check_weight_and_odds(horse):
-						print "\t\t" + horse.weight + "\t: " + horse.name + " ["+ str(horse.last_ran) + "] - " + horse.forecast_odds
+						if check_last_ran(horse.last_ran):
+							print "\t\t" + horse.weight + "\t: " + horse.name + " ["+ str(horse.last_ran) + "] - " + horse.forecast_odds
 				print "\n"
 			print "\n"
 
@@ -59,8 +60,8 @@ def check_distance(distance):
 	miles, furlongs, yards = distance
 	
 	if miles > 1:
-		return false
-	elif miles == 1 and furlongs > 2:
+		return False
+	elif miles == 1 and furlongs >= 2:
 		return False
 	else:
 		return True
@@ -94,6 +95,13 @@ def check_forecast_odds(odds):
 		return False
 		
 	return False
+
+def check_last_ran(days):
+    """docstring for fname"""
+    if days > 7:
+        return True
+    else:
+        return False
 
 	
 if __name__ == '__main__':
