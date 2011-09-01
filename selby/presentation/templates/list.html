@@ -3,10 +3,10 @@
         <title>selby</title>
     </head>
     <body>
-        <h4>Courses:</h4>
+        <h4>{{ list_name }}:</h4>
         <ul>
-        {% for course in courses %}
-            <li><a href="#">{{ course.name }}</a></li>
+        {% for object in list %}
+        <li><a href="{{ object.id }}">{{ object.name }}</a></li>
         {% endfor %}
         </ul>
     </body>
