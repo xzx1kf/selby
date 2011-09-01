@@ -77,11 +77,11 @@ class RacingPostCourseParser(object):
         for i in range(len(soup('tr'))):
             race_soup = soup('tr')[i]
 
-            #try:
-            race = rprp.parse_race(race_soup)
-            races.append(race)
-            #except:
-            #    pass
+            try:
+                race = rprp.parse_race(race_soup)
+                races.append(race)
+            except:
+                pass
         
         return races 
 
@@ -93,6 +93,15 @@ class RacingPostRaceParser(object):
         race = Race()
 
         race.title = self.parse_title(race_soup) 
+        
+        """
+        if race.title.find("FR") >= 0:
+            print "raising exception"
+            raise None
+
+        print race.title
+        """
+
         race.time = self.parse_time(race_soup)
         race.distance = self.parse_distance(race.title)
         race.url = self.parse_race_url(race_soup)
@@ -206,7 +215,7 @@ class RacingPostHorseParser(object):
 		odds = (forecast.contents[1].contents[1].contents[0]).strip()
 		horse = forecast('a')[0].contents[0]
 		horse = horse.lstrip().rstrip().upper()
-		horse = horse.replace('&ACUTE;', '')		
+		horse = horse.replace('&ACUTE;', '')
 
 		horses[str(horse)] = odds
 

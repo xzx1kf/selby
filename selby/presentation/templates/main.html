@@ -1,0 +1,14 @@
+<html>
+    <head>
+        <title>selby</title>
+    </head>
+    <body>
+        <h4>Courses:</h4>
+        <ul>
+        {% for course in courses %}
+            <li><a href="#">{{ course.name }}</a></li>
+        {% endfor %}
+        </ul>
+    </body>
+</html>
+

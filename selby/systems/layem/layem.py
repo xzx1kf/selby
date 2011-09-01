@@ -9,6 +9,24 @@ def write():
 	f = open("temp.obj", 'w')
 	cPickle.dump(courses, f)
 	f.close()
+
+def print_info():
+	f = open("temp.obj", 'r')
+	courses = cPickle.load(f)
+	f.close()
+
+	print "Number of courses today ---> " + str(len(courses))
+	print "\n"
+
+	for course in courses:
+		print course.name + " - Going: " + course.going
+
+		for race in course.races:
+			print "\t" + race.time + " " + race.title + " : [" + str(race.runners) + "]"
+			for horse in race.horses:
+				print "\t\t" + horse.weight + "\t: " + horse.name + " ["+ str(horse.last_ran) + "] - " + horse.forecast_odds
+			print "\n"
+		print "\n"
 	
 def read():
 	f = open("temp.obj", 'r')
@@ -107,3 +125,4 @@ def check_last_ran(days):
 if __name__ == '__main__':
 	#write()
 	read()
+    #print_info()
