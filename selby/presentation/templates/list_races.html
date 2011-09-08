@@ -1,0 +1,14 @@
+<html>
+    <head>
+        <title>selby</title>
+    </head>
+    <body>
+        <h4>{{ list_name }}:</h4>
+        <ul>
+        {% for object in list %}
+            <li>{{ object.time|time:'H:i' }} <a href="{{ object.id }}">{{ object.name|upper }}</a> Runners: {{ object.runners }} Distance: {{ object.distance }}</li>
+        {% endfor %}
+        </ul>
+    </body>
+</html>
+

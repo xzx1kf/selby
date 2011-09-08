@@ -1,0 +1,19 @@
+<html>
+    <head>
+        <title>selby</title>
+    </head>
+    <body>
+        <h4>{{ list_name }}:</h4>
+        <ul>
+        {% for horse in list %}
+        {% if horse.forecast_odds <= 8.5 and horse.forecast_odds >= 5.0 and horse.last_ran >= 8 %}
+            <li>{{ horse.weight }} {{ horse.name|upper }}</li>
+            <ul>
+                <li>Last Ran: {{ horse.last_ran }}</li>
+                <li>Forecast Odds: {{ horse.forecast_odds }}</li>
+            </ul>
+            {% endif %}
+        {% endfor %}
+        </ul>
+    </body>
+</html>

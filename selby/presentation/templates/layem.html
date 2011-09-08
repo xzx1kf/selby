@@ -1,0 +1,13 @@
+<html>
+    <head>
+        <title>selby</title>
+    </head>
+    <body>
+        <h4>Layem:</h4>
+        <ul>
+        {% for horse in horses %}
+            <li>{{ horse.race.time }} :: {{ horse.race.course }} :: {{ horse.race }} :: {{ horse.name }}:</li>
+        {% endfor %}
+        </ul>
+    </body>
+</html>

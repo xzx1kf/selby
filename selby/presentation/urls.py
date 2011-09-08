@@ -8,6 +8,7 @@ urlpatterns = patterns('',
     (r'^matthew/$', 'matthew.views.list_courses'),
     (r'^matthew/(?P<course_id>\d+)/$', 'matthew.views.list_races'),
     (r'^matthew/\d+/(?P<race_id>\d+)/$', 'matthew.views.list_horses'),
+    (r'^matthew/layem/$', 'matthew.views.layem'),
 
     # Examples:
     # url(r'^$', 'presentation.views.home', name='home'),

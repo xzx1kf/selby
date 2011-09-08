@@ -105,10 +105,10 @@ class RacingPostRaceParser(object):
         race.time = self.parse_time(race_soup)
         race.distance = self.parse_distance(race.title)
         race.url = self.parse_race_url(race_soup)
-        race.card_soup = self.read_url(race.url)
+        race_card_soup = self.read_url(race.url)
 
         rphp = RacingPostHorseParser()
-        race.horses = rphp.parse_horses(race.card_soup)
+        race.horses = rphp.parse_horses(race_card_soup)
 
         race.runners = int(len(race.horses))
 
